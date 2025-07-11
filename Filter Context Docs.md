@@ -1,147 +1,318 @@
-# 🧩 React Filter Context
+# Filter Context Documentation
 
-A lightweight and flexible context provider and hook for managing dynamic filters in a React application.
+## Overview
 
----
+The Filter Context provides a centralized solution for managing dynamic filters in Next.js applications. It offers a clean API for adding, removing, updating, and resetting filters while maintaining state consistency across components.
 
-## 🚀 What It Is
+## Types
 
-This module defines a `FilterProvider` and `useFilter` hook to centralize the state and behavior of filters in your React app. It enables adding, updating, removing, resetting, and querying filters—perfect for search interfaces, dashboards, or any UI that needs dynamic filtering logic.
+### FilterValue Interface
 
----
-
-## 📦 Features
-
--   🧠 Centralized filter state with React Context
--   ➕ Add or update multiple filters at once
--   ❌ Remove specific filters
--   🔍 Check for filter presence
--   🔁 Reset individual filters or clear all
-
----
-
-## 🛠️ Installation
-
-This module assumes a typical React + TypeScript setup.
-
-```bash
-# No install required — copy and then import the module
+```typescript
+interface FilterValue {
+    value: unknown | null;
+    category?: string;
+}
 ```
 
-## 💡 Why Use This?
+-   **value**: The actual filter value (can be any type or null)
+-   **category**: Optional categorization for grouping related filters
 
-This abstraction keeps your component logic clean while offering robust filter control. Ideal for:
+### Filters Interface
 
--   Complex filter interfaces (e.g. dashboards, search UIs)
--   Multi-step workflows needing persistent filters
--   Future enhancements like localStorage syncing, URL filters, or analytics integration
-
----
-
-## 📁 Suggested File Structure
-
-```
-components/
-  └── context/
-        └── filter-context.tsx
-types/
-  └── filter.types.ts
+```typescript
+interface Filters {
+    [id: string]: FilterValue;
+}
 ```
 
-## 🧑‍💻 Usage
+A map of filter IDs to their corresponding `FilterValue` objects.
 
-### Wrap Your App
+## Context API
 
-```tsx
+### FilterContextValue Interface
+
+The context provides the following methods and properties:
+
+#### Properties
+
+-   **filter**: `Filters` - Current active filters mapped by their IDs
+
+#### Methods
+
+-   **addFilters(filters: Filters)**: void
+
+    -   Merges new filters into the existing filter set
+    -   Existing filters with the same ID will be overridden
+
+-   **removeFilters(filterIds: string[])**: void
+
+    -   Completely removes filters based on their keys
+    -   Includes error handling for safe deletion
+
+-   **hasFilters(filterIds: string[])**: boolean
+
+    -   Checks whether all specified filters currently exist
+    -   Returns true only if all provided filter IDs are present
+
+-   **resetFilters(filterIds: string[])**: void
+
+    -   Sets specified filter values to `null` while keeping their keys
+    -   Preserves the filter structure but clears the values
+
+-   **resetAllFilters()**: void
+
+    -   Clears all filters from the context
+    -   Resets the entire filter state to an empty object
+
+-   **updateFilters(filters: Filters)**: void
+    -   Updates existing filters by merging in new values
+    -   Functionally identical to `addFilters`
+
+## Usage
+
+### 1. Setup the Provider
+
+Wrap your application or component tree with the `FilterProvider`:
+
+```jsx
 import { FilterProvider } from './path/to/filter-context';
 
 function App() {
     return (
         <FilterProvider>
-            <MyComponent />
+            <YourComponents />
         </FilterProvider>
     );
 }
 ```
 
-## 🧩 Use in a Component
+### 2. Using the Hook
 
-```tsx
+Access the filter context in any child component:
+
+```jsx
 import { useFilter } from './path/to/filter-context';
 
-function MyComponent() {
-    const { filter, addFilters, removeFilters, resetAllFilters } = useFilter();
+function SearchComponent() {
+    const {
+        filter,
+        addFilters,
+        removeFilters,
+        hasFilters,
+        resetFilters,
+        resetAllFilters,
+        updateFilters,
+    } = useFilter();
 
-    const handleAdd = () =>
-        addFilters({ status: { value: 'active', category: 'status' } });
+    // Example usage
+    const handleAddFilter = () => {
+        addFilters({
+            'search-term': { value: 'react', category: 'text' },
+            status: { value: 'active', category: 'dropdown' },
+        });
+    };
+
+    const handleRemoveFilter = () => {
+        removeFilters(['search-term']);
+    };
+
+    const handleResetFilter = () => {
+        resetFilters(['status']);
+    };
+
+    return <div>{/* Your component JSX */}</div>;
+}
+```
+
+## Examples
+
+### Basic Filter Management
+
+```jsx
+function FilterExample() {
+    const { filter, addFilters, removeFilters, hasFilters } = useFilter();
+
+    // Add multiple filters
+    const addSearchFilters = () => {
+        addFilters({
+            name: { value: 'John', category: 'search' },
+            age: { value: 25, category: 'range' },
+            city: { value: 'New York', category: 'location' },
+        });
+    };
+
+    // Check if filters exist
+    const checkFilters = () => {
+        const hasRequired = hasFilters(['name', 'age']);
+        console.log('Has required filters:', hasRequired);
+    };
+
+    // Remove specific filters
+    const clearLocationFilters = () => {
+        removeFilters(['city']);
+    };
 
     return (
-        <>
-            <button onClick={handleAdd}>Add Filter</button>
-            <button onClick={resetAllFilters}>Clear All</button>
-        </>
+        <div>
+            <button onClick={addSearchFilters}>Add Filters</button>
+            <button onClick={checkFilters}>Check Filters</button>
+            <button onClick={clearLocationFilters}>Clear Location</button>
+
+            {/* Display current filters */}
+            <pre>{JSON.stringify(filter, null, 2)}</pre>
+        </div>
     );
 }
 ```
 
-## 🔧 API Reference
+### Advanced Filter Operations
 
-| Function                 | Description                                               |
-| ------------------------ | --------------------------------------------------------- |
-| `filter`                 | The current filters object                                |
-| `addFilters(filters)`    | Adds or overrides filters                                 |
-| `removeFilters(ids)`     | Removes specific filters by ID                            |
-| `resetFilters(ids)`      | Sets filter values to `null` while preserving keys        |
-| `resetAllFilters()`      | Clears all filters                                        |
-| `updateFilters(filters)` | Merges updated filter values into existing ones           |
-| `hasFilters(ids)`        | Returns `true` if all given IDs exist in the filter state |
+```jsx
+function AdvancedFilterExample() {
+    const { filter, addFilters, resetFilters, resetAllFilters, updateFilters } =
+        useFilter();
 
----
+    // Update existing filter values
+    const updateSearchTerm = (newTerm) => {
+        updateFilters({
+            'search-term': { value: newTerm, category: 'text' },
+        });
+    };
 
-## 🧾 Type Definitions
+    // Reset specific filters to null (but keep the keys)
+    const resetSearchFilters = () => {
+        resetFilters(['search-term', 'category']);
+    };
 
-```ts
-export interface FilterValue {
-    value: unknown | null;
-    category?: string;
+    // Clear all filters
+    const clearAllFilters = () => {
+        resetAllFilters();
+    };
+
+    return (
+        <div>
+            <input
+                type="text"
+                onChange={(e) => updateSearchTerm(e.target.value)}
+                placeholder="Search term"
+            />
+            <button onClick={resetSearchFilters}>Reset Search</button>
+            <button onClick={clearAllFilters}>Clear All</button>
+        </div>
+    );
 }
+```
 
-export interface Filters {
-    [id: string]: FilterValue;
+### Filter Categories
+
+```jsx
+function CategorizedFilters() {
+    const { filter, addFilters } = useFilter();
+
+    // Group filters by category
+    const getFiltersByCategory = (category) => {
+        return Object.entries(filter).filter(
+            ([, filterValue]) => filterValue.category === category
+        );
+    };
+
+    const addCategorizedFilters = () => {
+        addFilters({
+            'price-min': { value: 100, category: 'pricing' },
+            'price-max': { value: 500, category: 'pricing' },
+            brand: { value: 'Nike', category: 'attributes' },
+            color: { value: 'blue', category: 'attributes' },
+        });
+    };
+
+    const pricingFilters = getFiltersByCategory('pricing');
+    const attributeFilters = getFiltersByCategory('attributes');
+
+    return (
+        <div>
+            <button onClick={addCategorizedFilters}>Add Filters</button>
+
+            <div>
+                <h3>Pricing Filters</h3>
+                {pricingFilters.map(([id, filter]) => (
+                    <div key={id}>
+                        {id}: {filter.value}
+                    </div>
+                ))}
+            </div>
+
+            <div>
+                <h3>Attribute Filters</h3>
+                {attributeFilters.map(([id, filter]) => (
+                    <div key={id}>
+                        {id}: {filter.value}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
 }
 ```
 
-## 🧼 Error Handling
+## Best Practices
 
-If `useFilter` is used outside of a `FilterProvider`, it throws a descriptive error:
+1. **Error Handling**: The context includes built-in error handling for filter removal operations
 
-```ts
-throw new Error('useFilter must be used within a FilterProvider');
+2. **Performance**: All methods are memoized using `useCallback` to prevent unnecessary re-renders
+
+3. **Type Safety**: Use TypeScript interfaces to ensure type safety when working with filters
+
+4. **Filter IDs**: Use descriptive, consistent naming conventions for filter IDs
+
+5. **Categories**: Leverage the optional `category` property to group related filters
+
+## Common Patterns
+
+### URL Synchronization
+
+```jsx
+// Sync filters with URL parameters
+useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const filtersFromUrl = {};
+
+    urlParams.forEach((value, key) => {
+        filtersFromUrl[key] = { value, category: 'url' };
+    });
+
+    addFilters(filtersFromUrl);
+}, []);
 ```
 
-## 🧪 Examples
+### Persistent Filters
 
-```tsx
-// Add filters
-addFilters({
-    sortBy: { value: 'price', category: 'sorting' },
-    inStock: { value: true },
-});
+```jsx
+// Save filters to localStorage
+useEffect(() => {
+    localStorage.setItem('filters', JSON.stringify(filter));
+}, [filter]);
 
-// Remove a filter
-removeFilters(['inStock']);
-
-// Update an existing filter
-updateFilters({
-    sortBy: { value: 'rating' },
-});
-
-// Check if filters exist
-hasFilters(['sortBy']); // true
-
-// Reset a filter's value to null
-resetFilters(['sortBy']);
-
-// Clear all filters
-resetAllFilters();
+// Load filters from localStorage
+useEffect(() => {
+    const savedFilters = localStorage.getItem('filters');
+    if (savedFilters) {
+        addFilters(JSON.parse(savedFilters));
+    }
+}, []);
 ```
+
+## Error Handling
+
+The context provider includes error handling for:
+
+-   Filter removal operations (safe deletion)
+-   Context usage outside of provider (throws descriptive error)
+
+Always use the `useFilter` hook within a component wrapped by `FilterProvider` to avoid runtime errors.
+
+## Performance Considerations
+
+-   All callback functions are memoized to prevent unnecessary re-renders
+-   Filter state updates are batched using React's state setter
+-   Consider using `useMemo` for expensive filter computations in consuming components

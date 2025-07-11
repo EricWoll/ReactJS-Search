@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useState } from 'react';
 import { Search, SearchValue } from '../types/search.types';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { URLSearchParams } from 'url';
+// Remove this line: import { URLSearchParams } from 'url';
 
 /**
  * Provides methods and state for managing multiple search instances.
@@ -47,8 +47,13 @@ interface SearchContextValue {
      * Updates the urlparams of a specific search instance.
      * @param id - ID of the search instance to update.
      * @param hasUrlSync - Should the URL sync status apply.
+     * @param queryValue - Optional query value to use instead of stored value.
      */
-    updateUrlParam: (id: string, hasUrlSync: boolean) => void;
+    updateUrlParam: (
+        id: string,
+        hasUrlSync: boolean,
+        queryValue?: string
+    ) => void;
 
     /** Updates multiple search instances' URL sync status. */
     updateUrlParams: (instances: Search) => void;
@@ -196,18 +201,34 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
     );
 
     const updateUrlParam = useCallback(
-        (id: string, hasUrlSync: boolean) => {
+        (id: string, hasUrlSync: boolean, queryValue?: string) => {
+            // Check if URL sync is enabled for this instance
             if (!hasUrlSync) return;
+
+            // Use native URLSearchParams (browser API)
             const currentParams = new URLSearchParams(
                 Object.fromEntries(urlSearchParams.entries())
             );
-            currentParams.set(id, searchInstances[id]?.query.value || '');
+
+            // Use the passed value or fall back to the stored instance value
+            const valueToUse =
+                queryValue !== undefined
+                    ? queryValue
+                    : searchInstances[id]?.query.value || '';
+
+            if (valueToUse) {
+                currentParams.set(id, valueToUse);
+            } else {
+                currentParams.delete(id); // Remove empty parameters
+            }
+
             router.push(`${pathname}?${currentParams.toString()}`);
         },
         [router, pathname, urlSearchParams, searchInstances]
     );
 
     const updateUrlParams = useCallback(() => {
+        // Use native URLSearchParams (browser API)
         const currentParams = new URLSearchParams(
             Object.fromEntries(urlSearchParams.entries())
         );
