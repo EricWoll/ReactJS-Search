@@ -102,6 +102,8 @@ function SearchInput({ id }: { id: string }) {
 | `addSearchInstances(instances)`            | Adds multiple search instances                    |
 | `updateSearchInstance(id, query)`          | Updates an existing instance’s query              |
 | `updateSearchInstances(instances)`         | Updates multiple instances                        |
+| `updateSearchInstance(id, query)`          | Updates the query of a specific search instance   |
+| `updateSearchInstances(instances)`         | Updates multiple search instances in bulk         |
 | `getSearchInstance(id)`                    | Retrieves a single search instance                |
 | `getSearchInstances(ids)`                  | Retrieves several instances by their IDs          |
 | `hasSearchInstance(id)`                    | Checks if a specific instance exists              |
