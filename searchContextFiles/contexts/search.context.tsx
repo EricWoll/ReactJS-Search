@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useState } from 'react';
 import { Search, SearchValue } from '../types/search.types';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { URLSearchParams } from 'url';
 
 /**
  * Provides methods and state for managing multiple search instances.
@@ -40,6 +42,16 @@ interface SearchContextValue {
      * @param instances - Object with updated search instances.
      */
     updateSearchInstances: (instances: Search) => void;
+
+    /**
+     * Updates the urlparams of a specific search instance.
+     * @param id - ID of the search instance to update.
+     * @param hasUrlSync - Should the URL sync status apply.
+     */
+    updateUrlParam: (id: string, hasUrlSync: boolean) => void;
+
+    /** Updates multiple search instances' URL sync status. */
+    updateUrlParams: (instances: Search) => void;
 
     /**
      * Retrieves a specific search instance.
@@ -118,6 +130,8 @@ const defaultValues: SearchContextValue = {
     addSearchInstances: () => {},
     updateSearchInstance: () => {},
     updateSearchInstances: () => {},
+    updateUrlParam: () => {},
+    updateUrlParams: () => {},
     getSearchInstance: () => undefined,
     getSearchInstances: () => undefined,
     hasSearchInstance: () => false,
@@ -138,6 +152,10 @@ const SearchContext = createContext<SearchContextValue | undefined>(
 /** * Provides methods and state for managing search instances.
  */
 export function SearchProvider({ children }: { children: React.ReactNode }) {
+    const router = useRouter();
+    const pathname = usePathname();
+    const urlSearchParams = useSearchParams();
+
     const [searchInstances, setSearchInstances] = useState<Search>({});
 
     const addSearchInstance = useCallback(
@@ -176,6 +194,28 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
         },
         [setSearchInstances]
     );
+
+    const updateUrlParam = useCallback(
+        (id: string, hasUrlSync: boolean) => {
+            if (!hasUrlSync) return;
+            const currentParams = new URLSearchParams(
+                Object.fromEntries(urlSearchParams.entries())
+            );
+            currentParams.set(id, searchInstances[id]?.query.value || '');
+            router.push(`${pathname}?${currentParams.toString()}`);
+        },
+        [router, pathname, urlSearchParams, searchInstances]
+    );
+
+    const updateUrlParams = useCallback(() => {
+        const currentParams = new URLSearchParams(
+            Object.fromEntries(urlSearchParams.entries())
+        );
+        Object.keys(searchInstances).forEach((id) => {
+            currentParams.set(id, searchInstances[id]?.query.value || '');
+        });
+        router.push(`${pathname}?${currentParams.toString()}`);
+    }, [router, pathname, urlSearchParams, searchInstances]);
 
     const getSearchInstance = useCallback(
         (id: string) => {
@@ -289,6 +329,8 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
         addSearchInstances,
         updateSearchInstance,
         updateSearchInstances,
+        updateUrlParam,
+        updateUrlParams,
         getSearchInstance,
         getSearchInstances,
         hasSearchInstance,
